@@ -1,5 +1,5 @@
 import { preloadAssets, svgToDataURL } from './assets.js';
-import { RaycastEngine } from './engine.js';
+import RaycastEngine from './engine.js';
 import { MapEditor } from './editor.js';
 import { HADManager, createDemoHADWithSeeds } from './had.js';
 import { compressSeed, decompressSeed, validateSeed, cloneSeed } from './seed.js';

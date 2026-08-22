@@ -354,6 +354,9 @@ class GameApp {
         this.gameCanvas.style.display = 'none';
         this.editorCanvas.style.display = 'block';
         document.getElementById('editorUI').classList.add('active');
+        document.getElementById('hud').style.display = 'none';
+        document.getElementById('crosshair').style.display = 'none';
+        document.getElementById('weaponSprite').style.display = 'none';
         this.editor.start();
     }
     

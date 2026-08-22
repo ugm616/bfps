@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAD Engine - Retro FPS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Courier New', monospace; 
+            background: #0a0a0a; 
+            color: #0f0; 
+            overflow: hidden; 
+            height: 100vh;
+            user-select: none;
+        }
+        canvas { display: block; }
+        #gameCanvas { position: absolute; top: 0; left: 0; z-index: 10; }
+        #editorCanvas { position: absolute; top: 0; left: 0; z-index: 5; display: none; }
+        
+        .ui-layer { 
+            position: absolute; 
+            z-index: 20; 
+            pointer-events: none;
+        }
+        .ui-layer > * { pointer-events: auto; }
+        
+        #mainMenu { 
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center;
+            width: 400px;
+        }
+        #mainMenu h1 { font-size: 48px; margin-bottom: 10px; text-shadow: 0 0 20px #0f0; }
+        #mainMenu .subtitle { color: #888; margin-bottom: 30px; }
+        .menu-btn { 
+            display: block; width: 100%; padding: 15px; margin: 10px 0;
+            background: #111; border: 2px solid #0f0; color: #0f0;
+            font-family: inherit; font-size: 18px; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .menu-btn:hover { background: #0f0; color: #000; }
+        .menu-btn:disabled { border-color: #444; color: #444; cursor: not-allowed; }
+        
+        #hud { 
+            bottom: 20px; left: 20px; right: 20px; 
+            display: flex; justify-content: space-between; align-items: flex-end;
+            pointer-events: none;
+        }
+        .hud-panel { background: rgba(0,0,0,0.7); border: 1px solid #0f0; padding: 10px 15px; pointer-events: auto; }
+        #health { font-size: 24px; }
+        #ammo { font-size: 24px; text-align: right; }
+        #weaponName { font-size: 14px; color: #8f8; margin-top: 5px; }
+        #crosshair { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 24px; height: 24px; pointer-events: none; z-index: 30;
+        }
+        #crosshair::before, #crosshair::after { 
+            content: ''; position: absolute; background: #0f0; 
+        }
+        #crosshair::before { width: 2px; height: 24px; left: 11px; top: 0; }
+        #crosshair::after { width: 24px; height: 2px; top: 11px; left: 0; }
+        
+        #messageLog { 
+            top: 20px; left: 20px; max-width: 400px; 
+            background: rgba(0,0,0,0.7); border: 1px solid #0f0; padding: 10px;
+            font-size: 12px; line-height: 1.5;
+        }
+        .message { margin: 3px 0; opacity: 1; transition: opacity 0.5s; }
+        .message.fade { opacity: 0; }
+        
+        #weaponSprite { 
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            height: 150px; image-rendering: pixelated; pointer-events: none; z-index: 15;
+        }
+        
+        #editorUI { display: none; }
+        #editorUI.active { display: block; }
+        .editor-toolbar { 
+            top: 10px; left: 10px; right: 10px; 
+            display: flex; gap: 5px; flex-wrap: wrap;
+            background: rgba(0,0,0,0.9); border: 1px solid #0f0; padding: 10px;
+        }
+        .tool-btn { 
+            padding: 8px 12px; background: #111; border: 1px solid #0f0; color: #0f0;
+            font-family: inherit; font-size: 12px; cursor: pointer;
+        }
+        .tool-btn.active, .tool-btn:hover { background: #0f0; color: #000; }
+        .tool-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .editor-panel { 
+            background: rgba(0,0,0,0.9); border: 1px solid #0f0; padding: 10px;
+            font-size: 12px; min-width: 200px; max-height: 80vh; overflow-y: auto;
+        }
+        #propertiesPanel { top: 60px; right: 10px; }
+        #layersPanel { top: 60px; left: 10px; }
+        .panel-title { color: #0f0; border-bottom: 1px solid #0f0; padding-bottom: 5px; margin-bottom: 10px; }
+        .prop-row { display: flex; gap: 5px; margin: 5px 0; align-items: center; }
+        .prop-row label { min-width: 80px; color: #8f8; }
+        .prop-row input, .prop-row select { 
+            background: #111; border: 1px solid #0f0; color: #0f0; 
+            font-family: inherit; font-size: 12px; padding: 3px 5px; flex: 1;
+        }
+        .prop-row input[type="color"] { width: 40px; height: 24px; padding: 0; }
+        
+        #cutsceneEditor { display: none; position: absolute; inset: 0; z-index: 50; background: #000; }
+        #cutsceneEditor.active { display: flex; flex-direction: column; }
+        .cutscene-toolbar { padding: 10px; border-bottom: 1px solid #0f0; background: #111; display: flex; gap: 10px; align-items: center; }
+        .cutscene-canvas { flex: 1; position: relative; }
+        #cutsceneCanvas { position: absolute; top: 0; left: 0; }
+        .cutscene-props { width: 300px; border-left: 1px solid #0f0; padding: 10px; overflow-y: auto; background: #111; }
+        
+        #loadScreen { 
+            position: fixed; inset: 0; background: #000; z-index: 100; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        #loadScreen.hidden { display: none; }
+        .load-bar { width: 300px; height: 20px; border: 2px solid #0f0; margin-top: 20px; }
+        .load-fill { height: 100%; background: #0f0; width: 0%; transition: width 0.1s; }
+        
+        .hidden { display: none !important; }
+        
+        @media (pointer: coarse) {
+            #crosshair { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loadScreen">
+        <h1>HAD ENGINE</h1>
+        <div class="load-bar"><div class="load-fill" id="loadFill"></div></div>
+        <div id="loadText">Initializing...</div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+    <canvas id="editorCanvas"></canvas>
+
+    <div class="ui-layer" id="mainMenu">
+        <h1>HAD ENGINE</h1>
+        <div class="subtitle">Retro FPS Engine - .HAD Format</div>
+        <button class="menu-btn" id="btnNewGame">New Game</button>
+        <button class="menu-btn" id="btnLoadHAD">Load .HAD File</button>
+        <button class="menu-btn" id="btnEditor">Level Editor</button>
+        <button class="menu-btn" id="btnCutsceneEditor">Cutscene Editor</button>
+        <input type="file" id="hadFileInput" accept=".had,.json" style="display: none;">
+    </div>
+
+    <div class="ui-layer" id="hud">
+        <div class="hud-panel" id="health">HEALTH: <span id="healthVal">100</span></div>
+        <div class="hud-panel" id="ammo">
+            AMMO: <span id="ammoVal">0</span> / <span id="ammoMax">0</span>
+            <div id="weaponName">FIST</div>
+        </div>
+    </div>
+    <div id="crosshair"></div>
+    <img id="weaponSprite" src="" alt="Weapon">
+
+    <div class="ui-layer" id="messageLog"></div>
+
+    <div class="ui-layer" id="editorUI">
+        <div class="editor-toolbar">
+            <button class="tool-btn" data-tool="select" title="Select (V)">Select</button>
+            <button class="tool-btn" data-tool="vertex" title="Add Vertex (V)">Add Vertex</button>
+            <button class="tool-btn" data-tool="wall" title="Draw Wall (W)">Draw Wall</button>
+            <button class="tool-btn" data-tool="sector" title="Create Sector (S)">Create Sector</button>
+            <button class="tool-btn" data-tool="player" title="Player Start (P)">Player Start</button>
+            <button class="tool-btn" data-tool="enemy" title="Place Enemy (E)">Enemy</button>
+            <button class="tool-btn" data-tool="pickup" title="Place Pickup (U)">Pickup</button>
+            <button class="tool-btn" data-tool="weapon" title="Place Weapon (W)">Weapon</button>
+            <button class="tool-btn" data-tool="light" title="Light Source (L)">Light</button>
+            <button class="tool-btn" data-tool="portal" title="Create Portal (O)">Portal</button>
+            <button class="tool-btn" id="btnTestLevel" title="Test Level (T)">Test Level</button>
+            <button class="tool-btn" id="btnSaveSeed" title="Save Seed Key">Save Seed</button>
+            <button class="tool-btn" id="btnLoadSeed" title="Load Seed Key">Load Seed</button>
+            <button class="tool-btn" id="btnExportHAD" title="Export .HAD">Export .HAD</button>
+            <button class="tool-btn" id="btnExitEditor" title="Exit Editor (Esc)">Exit Editor</button>
+        </div>
+        <div class="editor-panel" id="propertiesPanel">
+            <div class="panel-title">PROPERTIES</div>
+            <div id="propContent">Select an object to edit properties</div>
+        </div>
+        <div class="editor-panel" id="layersPanel">
+            <div class="panel-title">LAYERS / OBJECTS</div>
+            <div id="layersContent">No objects</div>
+        </div>
+    </div>
+
+    <div id="cutsceneEditor">
+        <div class="cutscene-toolbar">
+            <h2>CUTSCENE EDITOR</h2>
+            <button class="tool-btn" id="btnAddCutsceneText">Add Text</button>
+            <button class="tool-btn" id="btnAddCutsceneImage">Add Image</button>
+            <button class="tool-btn" id="btnSaveCutscene">Save Cutscene Seed</button>
+            <button class="tool-btn" id="btnExitCutscene">Exit</button>
+        </div>
+        <div class="cutscene-canvas">
+            <canvas id="cutsceneCanvas"></canvas>
+        </div>
+        <div class="cutscene-props">
+            <div class="panel-title">CUTSCENE ELEMENTS</div>
+            <div id="cutsceneElements"></div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>

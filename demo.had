@@ -1,0 +1,21 @@
+{
+  "game-name": "HAD ENGINE DEMO",
+  "menu-options": "start game, options",
+  "scenes": [
+    {
+      "scene": "level_1",
+      "title": "Level 1 - Entry Point",
+      "start-from": "start game",
+      "seed-key": "HAD1:zVVNj5swEP0r1ezViTCfgVvUrdTDHnurIkTYCVgxNjJONmmU_17ZhoQVpJc2UrGEPBO_93gzjn2BI2SUgCgahAxesZFf3vCIHAi0vDijguwCJ8g8Amf7_mXfhag42lmHpZYKMu86zDvIfl7giEqzEk3gEUp8EmwIfBScf87suJTqO7Kq1pauRMaHkPqrfsEPPOmDMl9ow7yUolSoERzg_rOJmKhyzTh20KO_Sm6-EF78tRk96JalazOAADeyzr2pyY6zcm8KsCt4h1fyyVNIIhKTZOTpnvlfPXnL1ciVVge8bsjYlO30wo9i22wzMa5PkP0hdc8spqkZXBKvHqXmyUclvsCR2ooefdshfauRWZFrLOtJfby1GQ_rUw6ZYG2G2fZS6cLsANtxaoWMnj_R2ypW7v9WcFDxnUrwXJXAqXjPVQmdSjRRadCU9h-pRE4lfq5K7FSS56jct5s3CCZOMHySrQ0BXTNRuf-TPreGvz_qyaeTfnSy3xaiwOacV-ogtFsdepP19HY9BEsa0ij14yiIVmmSBhMm1rSOJ-p5qDfLtKDLKPGSNA78OEnDVRrHI66WlftDm9dYcF07PjrH500xhWpkb3wxYBYPQR9YtFLkXS11dRAOFsyi6IxU08i8ZZ2W3CHjB8iNCbR2TbrATlb3btvHbAJZvbJOF6JEa9Lcyc2WodBv7qKBl8A-QEAhl8X7N1FsOb73B__1Nw",
+      "end-goto": "cutscene_1"
+    },
+    {
+      "scene": "cutscene_1",
+      "title": "The Journey Begins",
+      "start-from": "level_1",
+      "seed-key": "HAD1:Vc3BasMwEIThV1n2LIyd5qRroH2BXkIpZSNNamF7Fay1iQl592BSinP9mY-58cy-cawygD0fJisBCmrYsS2XtYW_xo5PErrfMU8a2XPplp-TlLX3SVHYf93YcDX2fMwTtTKDoIYRkawFnSWkPtlSVRU7juhlYd_UdX13__CzBUUMWcvTm3RQyjPGjdm9mvekzwNck5FoJJQgF2zE26v4yDlSP4XO0SBj0u10v06_7w8",
+      "end-goto": "ENDGAME"
+    }
+  ],
+  "reload": "on"
+}

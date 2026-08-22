@@ -1283,29 +1283,41 @@ drawWalls(ctx) {
     
     drawUI(ctx) {
         const toolName = TOOL_TYPES[this.tool]?.name || this.tool;
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.fillRect(10, 10, 250, 80);
-        ctx.strokeStyle = '#0F0';
-        ctx.strokeRect(10, 10, 250, 80);
+        const stats = `Vertices: ${this.seed.vertices.length} | Walls: ${this.seed.walls.length} | Sectors: ${this.seed.sectors.length} | Things: ${this.seed.things.length}`;
+        
+        // Center top status bar
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        const textWidth = ctx.measureText(stats).width + 40;
+        const x = this.width / 2 - textWidth / 2;
+        ctx.fillRect(x, 8, textWidth, 22);
         
         ctx.fillStyle = '#0F0';
-        ctx.font = '14px monospace';
+        ctx.fillText(stats, this.width / 2, 24);
+        
+        // Tool info top-left (small)
         ctx.textAlign = 'left';
-        ctx.fillText(`Tool: ${toolName}`, 20, 30);
-        ctx.fillText(`Zoom: ${(this.camera.zoom * 100).toFixed(0)}%`, 20, 50);
-        ctx.fillText(`Vertices: ${this.seed.vertices.length} | Walls: ${this.seed.walls.length} | Sectors: ${this.seed.sectors.length} | Things: ${this.seed.things.length}`, 20, 70);
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(10, 8, 180, 22);
+        ctx.fillStyle = '#0F0';
+        ctx.font = '11px monospace';
+        ctx.fillText(`Tool: ${toolName} | Zoom: ${(this.camera.zoom * 100).toFixed(0)}%`, 15, 24);
         
         if (this.creatingSector.length > 0) {
             ctx.fillStyle = '#0FF';
-            ctx.fillText(`Creating sector: ${this.creatingSector.length} vertices (click first to close)`, 20, 90);
+            ctx.textAlign = 'center';
+            ctx.fillText(`Creating sector: ${this.creatingSector.length} vertices (click first to close)`, this.width / 2, 48);
         }
         if (this.drawingWall) {
             ctx.fillStyle = '#0F0';
-            ctx.fillText('Drawing wall: click to place end point', 20, 90);
+            ctx.textAlign = 'center';
+            ctx.fillText('Drawing wall: click to place end point', this.width / 2, 48);
         }
         if (this.creatingPortal) {
             ctx.fillStyle = '#FF0';
-            ctx.fillText('Creating portal: click another wall to connect', 20, 90);
+            ctx.textAlign = 'center';
+            ctx.fillText('Creating portal: click another wall to connect', this.width / 2, 48);
         }
     }
     

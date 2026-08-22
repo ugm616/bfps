@@ -81,7 +81,7 @@ export class MapEditor {
             btn.addEventListener('click', () => this.setTool(btn.dataset.tool));
         });
         
-        document.getElementById('btnTestLevel').addEventListener('click', () => this.onTest(this.getSeed()));
+        document.getElementById('btnTestLevel').addEventListener('click', () => this.ensurePlayerStartAndTest());
         document.getElementById('btnSaveSeed').addEventListener('click', () => this.saveSeed());
         document.getElementById('btnLoadSeed').addEventListener('click', () => this.loadSeedPrompt());
         document.getElementById('btnExportHAD').addEventListener('click', () => this.exportHAD());
@@ -1061,6 +1061,25 @@ export class MapEditor {
         log.appendChild(div);
         setTimeout(() => div.classList.add('fade'), 2500);
         setTimeout(() => div.remove(), 3000);
+    }
+    
+    ensurePlayerStartAndTest() {
+        const seed = this.getSeed();
+        if (!seed.player || seed.player.sector === undefined || seed.sectors.length === 0) {
+            if (seed.sectors.length > 0 && seed.sectors[0].vertices.length >= 3) {
+                const v0 = seed.vertices[seed.sectors[0].vertices[0]];
+                const v1 = seed.vertices[seed.sectors[0].vertices[1]];
+                const v2 = seed.vertices[seed.sectors[0].vertices[2]];
+                const cx = (v0.x + v1.x + v2.x) / 3;
+                const cy = (v0.y + v1.y + v2.y) / 3;
+                seed.player = { x: cx, y: cy, z: 0, angle: 0, sector: 0 };
+                this.showMessage('Auto-placed player start in first sector');
+            } else {
+                seed.player = { x: 0, y: 0, z: 0, angle: 0, sector: 0 };
+                this.showMessage('No sectors found - player at origin');
+            }
+        }
+        this.onTest(seed);
     }
     
     getSeed() {

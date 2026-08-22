@@ -353,6 +353,20 @@ class GameApp {
     }
     
     testLevel(seed) {
+        // Ensure player start exists
+        if (!seed.player || seed.player.sector === undefined) {
+            const firstSector = seed.sectors[0];
+            if (firstSector && firstSector.vertices.length >= 3) {
+                const v0 = seed.vertices[firstSector.vertices[0]];
+                const v1 = seed.vertices[firstSector.vertices[1]];
+                const v2 = seed.vertices[firstSector.vertices[2]];
+                const cx = (v0.x + v1.x + v2.x) / 3;
+                const cy = (v0.y + v1.y + v2.y) / 3;
+                seed.player = { x: cx, y: cy, z: 0, angle: 0, sector: 0 };
+            } else {
+                seed.player = { x: 0, y: 0, z: 0, angle: 0, sector: 0 };
+            }
+        }
         this.engine.loadSeed(seed).then(() => {
             this.state = 'playing';
             this.gameCanvas.style.display = 'block';

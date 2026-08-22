@@ -914,7 +914,7 @@ class RaycastEngine {
             const col = columns[x];
             if (!col) continue;
             
-            const light = col.light;
+            const light = Math.max(0.1, col.light || 1);
             const wall = col.wall;
             
             for (let i = 0; i < col.top.length - 1; i++) {

@@ -78,26 +78,29 @@
         #editorUI.active { display: block; }
         .editor-toolbar { 
             position: fixed;
-            top: 10px; left: 10px; right: 10px; 
+            top: 0; left: 0; right: 0; 
             display: flex; gap: 5px; flex-wrap: wrap;
-            background: rgba(0,0,0,0.9); border: 1px solid #0f0; padding: 10px;
-            z-index: 20;
+            background: rgba(0,0,0,0.95); border-bottom: 1px solid #0f0; padding: 8px 10px;
+            z-index: 30;
+            height: 52px;
         }
         .tool-btn { 
-            padding: 8px 12px; background: #111; border: 1px solid #0f0; color: #0f0;
-            font-family: inherit; font-size: 12px; cursor: pointer;
+            padding: 6px 10px; background: #111; border: 1px solid #0f0; color: #0f0;
+            font-family: inherit; font-size: 11px; cursor: pointer; white-space: nowrap;
         }
         .tool-btn.active, .tool-btn:hover { background: #0f0; color: #000; }
         .tool-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         
         .editor-panel { 
             position: fixed;
-            background: rgba(0,0,0,0.9); border: 1px solid #0f0; padding: 10px;
-            font-size: 12px; min-width: 200px; max-height: 80vh; overflow-y: auto;
+            top: 52px; bottom: 10px;
+            background: rgba(0,0,0,0.9); border: 1px solid #0f0; padding: 8px;
+            font-size: 11px; width: 180px; overflow-y: auto;
             z-index: 20;
+            box-sizing: border-box;
         }
-        #propertiesPanel { top: 60px; right: 10px; }
-        #layersPanel { top: 60px; left: 10px; }
+        #propertiesPanel { right: 10px; }
+        #layersPanel { left: 10px; }
         .panel-title { color: #0f0; border-bottom: 1px solid #0f0; padding-bottom: 5px; margin-bottom: 10px; }
         .prop-row { display: flex; gap: 5px; margin: 5px 0; align-items: center; }
         .prop-row label { min-width: 80px; color: #8f8; }

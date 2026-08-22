@@ -897,7 +897,7 @@ class RaycastEngine {
                         nBottomY = this.halfHeight - (neighborFloor - p.z) * scale - p.pitch * scale;
                     }
                     
-                    const col = columns[x] || (columns[x] = { top: [], bottom: [], portalTop: [], portalBottom: [], dist: dist, light: lightLevel, wall: wall });
+                    const col = columns[x] || (columns[x] = { top: [], bottom: [], portalTop: [], portalBottom: [], dist: dist, light: lightLevel, wall: wall, wallIdx: wallIdx });
                     col.dist = Math.min(col.dist, dist);
                     col.light = lightLevel;
                     col.top.push({ y: topY, x });
@@ -960,6 +960,12 @@ class RaycastEngine {
             
             const midY1 = col.top[0]?.y ?? 0;
             const midY2 = col.bottom[0]?.y ?? this.height;
+            
+            // Get sector for floor/ceiling textures
+            const sector = this.seed.sectors.find(s => s.walls.includes(col.wallIdx ?? -1)) || 
+                          this.seed.sectors[this.player.sector];
+            const floorTex = sector && this.assets[sector.floorTexture];
+            const ceilTex = sector && this.assets[sector.ceilTexture];
             
             for (let i = 0; i < col.top.length - 1; i++) {
                 const y1 = col.top[i].y;

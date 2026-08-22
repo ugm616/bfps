@@ -77,9 +77,11 @@
         #editorUI { display: none; }
         #editorUI.active { display: block; }
         .editor-toolbar { 
+            position: fixed;
             top: 10px; left: 10px; right: 10px; 
             display: flex; gap: 5px; flex-wrap: wrap;
             background: rgba(0,0,0,0.9); border: 1px solid #0f0; padding: 10px;
+            z-index: 20;
         }
         .tool-btn { 
             padding: 8px 12px; background: #111; border: 1px solid #0f0; color: #0f0;
@@ -89,8 +91,10 @@
         .tool-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         
         .editor-panel { 
+            position: fixed;
             background: rgba(0,0,0,0.9); border: 1px solid #0f0; padding: 10px;
             font-size: 12px; min-width: 200px; max-height: 80vh; overflow-y: auto;
+            z-index: 20;
         }
         #propertiesPanel { top: 60px; right: 10px; }
         #layersPanel { top: 60px; left: 10px; }

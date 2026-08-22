@@ -47,6 +47,7 @@ export class MapEditor {
         this.creatingPortal = null;
         
         this.camera = { x: 0, y: 0, zoom: 1 };
+        this.cameraNeedsCentering = true;
         this.panning = false;
         this.panStart = { x: 0, y: 0 };
         
@@ -587,12 +588,21 @@ export class MapEditor {
                 const wall = this.seed.walls[index];
                 const v1 = this.seed.vertices[wall.v1];
                 const v2 = this.seed.vertices[wall.v2];
+                const wallTex = this.assets[wall.texture] ? wall.texture : 'wall_tech';
                 html = `
                     <div class="prop-row"><label>Wall ${index}</label></div>
                     <div class="prop-row"><label>Texture</label>
-                        <select data-prop="texture">
+                        <select data-prop="texture" id="wallTexSelect">
                             ${TEXTURE_TYPES.map(t => `<option value="${t}" ${wall.texture===t?'selected':''}>${t}</option>`).join('')}
                         </select>
+                    </div>
+                    <div class="prop-row">
+                        <label>Preview</label>
+                        <canvas id="wallTexPreview" width="64" height="64" style="border:1px solid #0F0;image-rendering:pixelated;"></canvas>
+                    </div>
+                    <div class="prop-row">
+                        <label>Custom</label>
+                        <input type="file" accept=".svg" id="wallTexUpload" style="font-size:10px;">
                     </div>
                     <div class="prop-row"><label>Color</label><input type="color" data-prop="color" value="${wall.color || '#3A3A3A'}"></div>
                     <div class="prop-row"><label>Floor Color</label><input type="color" data-prop="floorColor" value="${wall.floorColor || '#0A0A0A'}"></div>
@@ -603,19 +613,37 @@ export class MapEditor {
                 
             case 'sector':
                 const sector = this.seed.sectors[index];
+                const floorTex = this.assets[sector.floorTexture] ? sector.floorTexture : 'floor_concrete';
+                const ceilTex = this.assets[sector.ceilTexture] ? sector.ceilTexture : 'ceiling_tiles';
                 html = `
                     <div class="prop-row"><label>Sector ${index}</label></div>
                     <div class="prop-row"><label>Floor H</label><input type="number" data-prop="floorHeight" value="${sector.floorHeight}" step="8"></div>
                     <div class="prop-row"><label>Ceil H</label><input type="number" data-prop="ceilHeight" value="${sector.ceilHeight}" step="8"></div>
                     <div class="prop-row"><label>Floor Tex</label>
-                        <select data-prop="floorTexture">
+                        <select data-prop="floorTexture" id="floorTexSelect">
                             ${FLOOR_TYPES.map(t => `<option value="${t}" ${sector.floorTexture===t?'selected':''}>${t}</option>`).join('')}
                         </select>
                     </div>
+                    <div class="prop-row">
+                        <label>Preview</label>
+                        <canvas id="floorTexPreview" width="64" height="64" style="border:1px solid #0F0;image-rendering:pixelated;"></canvas>
+                    </div>
+                    <div class="prop-row">
+                        <label>Custom</label>
+                        <input type="file" accept=".svg" id="floorTexUpload" style="font-size:10px;">
+                    </div>
                     <div class="prop-row"><label>Ceil Tex</label>
-                        <select data-prop="ceilTexture">
+                        <select data-prop="ceilTexture" id="ceilTexSelect">
                             ${CEIL_TYPES.map(t => `<option value="${t}" ${sector.ceilTexture===t?'selected':''}>${t}</option>`).join('')}
                         </select>
+                    </div>
+                    <div class="prop-row">
+                        <label>Preview</label>
+                        <canvas id="ceilTexPreview" width="64" height="64" style="border:1px solid #0F0;image-rendering:pixelated;"></canvas>
+                    </div>
+                    <div class="prop-row">
+                        <label>Custom</label>
+                        <input type="file" accept=".svg" id="ceilTexUpload" style="font-size:10px;">
                     </div>
                     <div class="prop-row"><label>Floor Color</label><input type="color" data-prop="floorColor" value="${sector.floorColor || '#2A2A2A'}"></div>
                     <div class="prop-row"><label>Ceil Color</label><input type="color" data-prop="ceilColor" value="${sector.ceilColor || '#1A1A1A'}"></div>
@@ -635,9 +663,18 @@ export class MapEditor {
                 } else if (thing.type.startsWith('weapon_')) {
                     options = WEAPON_TYPES.map(t => `<option value="${t}" ${thing.type===t?'selected':''}>${t}</option>`).join('');
                 }
+                const thingTex = this.assets[thing.type] ? thing.type : 'enemy_grunt';
                 html = `
                     <div class="prop-row"><label>Thing ${index}</label></div>
-                    <div class="prop-row"><label>Type</label><select data-prop="type">${options}</select></div>
+                    <div class="prop-row"><label>Type</label><select data-prop="type" id="thingTypeSelect">${options}</select></div>
+                    <div class="prop-row">
+                        <label>Preview</label>
+                        <canvas id="thingTexPreview" width="64" height="64" style="border:1px solid #0F0;image-rendering:pixelated;"></canvas>
+                    </div>
+                    <div class="prop-row">
+                        <label>Custom SVG</label>
+                        <input type="file" accept=".svg" id="thingSvgUpload" style="font-size:10px;">
+                    </div>
                     <div class="prop-row"><label>X</label><input type="number" data-prop="x" value="${thing.x}" step="1"></div>
                     <div class="prop-row"><label>Y</label><input type="number" data-prop="y" value="${thing.y}" step="1"></div>
                     <div class="prop-row"><label>Angle</label><input type="number" data-prop="angle" value="${thing.angle || 0}" step="0.1"></div>
@@ -655,6 +692,171 @@ export class MapEditor {
             el.dataset.index = index;
             el.dataset.type = type;
         });
+        
+        // Add texture preview and upload handlers
+        this.setupTexturePreviews(type, index);
+    }
+    
+    setupTexturePreviews(objType, objIndex) {
+        // Wall texture preview
+        const wallTexSelect = document.getElementById('wallTexSelect');
+        const wallTexPreview = document.getElementById('wallTexPreview');
+        const wallTexUpload = document.getElementById('wallTexUpload');
+        if (wallTexSelect && wallTexPreview) {
+            const drawWallPreview = () => {
+                const tex = this.assets[wallTexSelect.value];
+                if (tex) {
+                    const ctx = wallTexPreview.getContext('2d');
+                    ctx.drawImage(tex, 0, 0, 64, 64);
+                }
+            };
+            wallTexSelect.addEventListener('change', drawWallPreview);
+            drawWallPreview();
+        }
+        if (wallTexUpload) {
+            wallTexUpload.addEventListener('change', (e) => this.handleSvgUpload(e, 'wall', objIndex, 'texture'));
+        }
+        
+        // Floor texture preview
+        const floorTexSelect = document.getElementById('floorTexSelect');
+        const floorTexPreview = document.getElementById('floorTexPreview');
+        const floorTexUpload = document.getElementById('floorTexUpload');
+        if (floorTexSelect && floorTexPreview) {
+            const drawFloorPreview = () => {
+                const tex = this.assets[floorTexSelect.value];
+                if (tex) {
+                    const ctx = floorTexPreview.getContext('2d');
+                    ctx.drawImage(tex, 0, 0, 64, 64);
+                }
+            };
+            floorTexSelect.addEventListener('change', drawFloorPreview);
+            drawFloorPreview();
+        }
+        if (floorTexUpload) {
+            floorTexUpload.addEventListener('change', (e) => this.handleSvgUpload(e, 'sector', objIndex, 'floorTexture'));
+        }
+        
+        // Ceiling texture preview
+        const ceilTexSelect = document.getElementById('ceilTexSelect');
+        const ceilTexPreview = document.getElementById('ceilTexPreview');
+        const ceilTexUpload = document.getElementById('ceilTexUpload');
+        if (ceilTexSelect && ceilTexPreview) {
+            const drawCeilPreview = () => {
+                const tex = this.assets[ceilTexSelect.value];
+                if (tex) {
+                    const ctx = ceilTexPreview.getContext('2d');
+                    ctx.drawImage(tex, 0, 0, 64, 64);
+                }
+            };
+            ceilTexSelect.addEventListener('change', drawCeilPreview);
+            drawCeilPreview();
+        }
+        if (ceilTexUpload) {
+            ceilTexUpload.addEventListener('change', (e) => this.handleSvgUpload(e, 'sector', objIndex, 'ceilTexture'));
+        }
+        
+        // Thing texture preview
+        const thingTypeSelect = document.getElementById('thingTypeSelect');
+        const thingTexPreview = document.getElementById('thingTexPreview');
+        const thingSvgUpload = document.getElementById('thingSvgUpload');
+        if (thingTypeSelect && thingTexPreview) {
+            const drawThingPreview = () => {
+                const tex = this.assets[thingTypeSelect.value];
+                if (tex) {
+                    const ctx = thingTexPreview.getContext('2d');
+                    ctx.drawImage(tex, 0, 0, 64, 64);
+                }
+            };
+            thingTypeSelect.addEventListener('change', drawThingPreview);
+            drawThingPreview();
+        }
+        if (thingSvgUpload) {
+            thingSvgUpload.addEventListener('change', (e) => this.handleThingSvgUpload(e, objIndex));
+        }
+    }
+    
+    async handleSvgUpload(e, objType, objIndex, propName) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const text = await file.text();
+        if (!text.includes('<svg')) {
+            this.showMessage('Invalid SVG file');
+            return;
+        }
+        
+        // Generate a unique key for the custom SVG
+        const key = `custom_${objType}_${objIndex}_${propName}_${Date.now()}`;
+        this.assets[key] = await this.svgToImage(text, 128, 128);
+        
+        // Update the seed
+        if (objType === 'wall') {
+            this.seed.walls[objIndex][propName] = key;
+        } else if (objType === 'sector') {
+            this.seed.sectors[objIndex][propName] = key;
+        }
+        
+        // Update the select dropdown to include the new custom texture
+        const select = document.getElementById(`${propName === 'texture' ? 'wallTexSelect' : propName === 'floorTexture' ? 'floorTexSelect' : 'ceilTexSelect'}`);
+        if (select) {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = `Custom: ${file.name}`;
+            option.selected = true;
+            select.appendChild(option);
+        }
+        
+        this.showMessage(`Custom ${propName} uploaded: ${file.name}`);
+        e.target.value = '';
+    }
+    
+    async handleThingSvgUpload(e, objIndex) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const text = await file.text();
+        if (!text.includes('<svg')) {
+            this.showMessage('Invalid SVG file');
+            return;
+        }
+        
+        const key = `custom_thing_${objIndex}_${Date.now()}`;
+        this.assets[key] = await this.svgToImage(text, 64, 128);
+        
+        // Change the thing type to use the custom SVG
+        this.seed.things[objIndex].type = key;
+        
+        // Update the select dropdown
+        const select = document.getElementById('thingTypeSelect');
+        if (select) {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = `Custom: ${file.name}`;
+            option.selected = true;
+            select.appendChild(option);
+        }
+        
+        this.showMessage(`Custom entity SVG uploaded: ${file.name}`);
+        e.target.value = '';
+    }
+    
+    svgToImage(svgString, width, height) {
+        return new Promise((resolve) => {
+            const blob = new Blob([svgString], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const img = new Image();
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = false;
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas);
+            };
+            img.src = url;
+        });
     }
     
     onPropertyChange(e) {
@@ -670,17 +872,26 @@ export class MapEditor {
         switch (type) {
             case 'vertex':
                 this.seed.vertices[index][prop] = value;
+                this.cameraNeedsCentering = true;
                 break;
             case 'wall':
                 this.seed.walls[index][prop] = value;
                 if (prop === 'portal' && value === '') value = undefined;
+                this.cameraNeedsCentering = true;
                 break;
             case 'sector':
                 this.seed.sectors[index][prop] = value;
+                this.cameraNeedsCentering = true;
                 break;
             case 'thing':
                 this.seed.things[index][prop] = value;
+                this.cameraNeedsCentering = true;
                 break;
+        }
+        
+        // Refresh properties panel if it's a select change
+        if (e.target.tagName === 'SELECT') {
+            this.updatePropertiesPanel();
         }
     }
     
@@ -722,6 +933,11 @@ export class MapEditor {
     render() {
         const ctx = this.ctx;
         const w = this.width, h = this.height;
+        
+        if (this.cameraNeedsCentering) {
+            this.centerCameraOnContent();
+            this.cameraNeedsCentering = false;
+        }
         
         ctx.fillStyle = '#0A0A0A';
         ctx.fillRect(0, 0, w, h);
@@ -864,7 +1080,7 @@ export class MapEditor {
         }
     }
     
-    drawWalls(ctx) {
+drawWalls(ctx) {
         for (let i = 0; i < this.seed.walls.length; i++) {
             const wall = this.seed.walls[i];
             const v1 = this.seed.vertices[wall.v1];
@@ -874,6 +1090,24 @@ export class MapEditor {
             const isPortal = wall.portal !== undefined;
             const isSelected = this.selectedObject?.type === 'wall' && this.selectedObject.index === i;
             const isHovered = this.hoveredObject?.type === 'wall' && this.hoveredObject.index === i;
+            
+            // Draw wall texture preview in 2D view
+            const tex = this.assets[wall.texture];
+            if (tex && this.camera.zoom > 0.3) {
+                ctx.save();
+                ctx.globalAlpha = 0.4;
+                const mx = (v1.x + v2.x) / 2;
+                const my = (v1.y + v2.y) / 2;
+                const dx = v2.x - v1.x;
+                const dy = v2.y - v1.y;
+                const len = Math.hypot(dx, dy);
+                const angle = Math.atan2(dy, dx);
+                ctx.translate(mx, my);
+                ctx.rotate(angle);
+                const texScale = Math.min(len / 128, 1) * this.camera.zoom;
+                ctx.drawImage(tex, -64 * texScale, -32 * texScale, 128 * texScale, 64 * texScale);
+                ctx.restore();
+            }
             
             ctx.strokeStyle = isSelected ? '#0F0' : (isHovered ? '#FF0' : (isPortal ? '#0FF' : '#444'));
             ctx.lineWidth = (isSelected || isHovered ? 3 : 1) / this.camera.zoom;
@@ -899,6 +1133,30 @@ export class MapEditor {
             if (isPortal) {
                 ctx.fillText(`→${wall.portal}`, mx + nx, my + ny);
             }
+            
+            // Show height difference for portal walls
+            if (isPortal && wall.portal !== undefined) {
+                const otherSector = this.seed.sectors[wall.portal];
+                const thisSector = this.findSectorForWall(i);
+                if (otherSector && thisSector) {
+                    const floorDiff = otherSector.floorHeight - thisSector.floorHeight;
+                    const ceilDiff = otherSector.ceilHeight - thisSector.ceilHeight;
+                    if (floorDiff !== 0 || ceilDiff !== 0) {
+                        ctx.fillStyle = '#FF0';
+                        ctx.font = `${8 / this.camera.zoom}px monospace`;
+                        ctx.fillText(`ΔF:${floorDiff} ΔC:${ceilDiff}`, mx - nx, my - ny);
+                    }
+                }
+            }
+        }
+    }
+    
+    findSectorForWall(wallIndex) {
+        for (const sector of this.seed.sectors) {
+            if (sector.walls.includes(wallIndex)) return sector;
+        }
+        return null;
+    }
         }
     }
     
@@ -1148,6 +1406,32 @@ export class MapEditor {
         this.selectObject(null);
         this.updateUI();
         this.showMessage(`Loaded seed: ${seed.name}`);
+    }
+    
+    centerCameraOnContent() {
+        if (this.seed.vertices.length === 0) return;
+        
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const v of this.seed.vertices) {
+            minX = Math.min(minX, v.x);
+            minY = Math.min(minY, v.y);
+            maxX = Math.max(maxX, v.x);
+            maxY = Math.max(maxY, v.y);
+        }
+        
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
+        const width = maxX - minX;
+        const height = maxY - minY;
+        
+        this.camera.x = cx;
+        this.camera.y = cy;
+        
+        if (width > 0 && height > 0) {
+            const zoomX = (this.width * 0.8) / width;
+            const zoomY = (this.height * 0.8) / height;
+            this.camera.zoom = Math.min(zoomX, zoomY, 2);
+        }
     }
     
     start() {

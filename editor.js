@@ -1157,8 +1157,6 @@ drawWalls(ctx) {
         }
         return null;
     }
-        }
-    }
     
     drawVertices(ctx) {
         for (let i = 0; i < this.seed.vertices.length; i++) {

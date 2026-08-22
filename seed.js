@@ -1,6 +1,10 @@
 const SEED_VERSION = 1;
 const SEED_PREFIX = 'HAD1:';
 
+if (typeof CompressionStream === 'undefined' || typeof DecompressionStream === 'undefined') {
+    console.warn('CompressionStream/DecompressionStream not available - seed compression will not work');
+}
+
 export async function compressSeed(data) {
     const json = JSON.stringify(data);
     const encoder = new TextEncoder();
@@ -29,14 +33,19 @@ export async function decompressSeed(seedKey) {
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     
-    const ds = new DecompressionStream('deflate-raw');
-    const writer = ds.writable.getWriter();
-    await writer.write(bytes);
-    await writer.close();
-    
-    const decompressed = await new Response(ds.readable).arrayBuffer();
-    const json = new TextDecoder().decode(decompressed);
-    return JSON.parse(json);
+    try {
+        const ds = new DecompressionStream('deflate-raw');
+        const writer = ds.writable.getWriter();
+        await writer.write(bytes);
+        await writer.close();
+        
+        const decompressed = await new Response(ds.readable).arrayBuffer();
+        const json = new TextDecoder().decode(decompressed);
+        return JSON.parse(json);
+    } catch (e) {
+        console.error('Decompression failed:', e);
+        throw new Error('Failed to decompress seed: ' + e.message);
+    }
 }
 
 export function createEmptySeed(name = 'Untitled Level') {

@@ -135,12 +135,19 @@ class GameApp {
     }
     
     async startNewGame() {
-        if (!this.currentHAD) {
-            this.showLoadScreen('Generating demo game...');
-            this.currentHAD = await createDemoHADWithSeeds();
+        try {
+            if (!this.currentHAD) {
+                this.showLoadScreen('Generating demo game...');
+                this.currentHAD = await createDemoHADWithSeeds();
+            }
+            this.currentSceneIndex = 0;
+            await this.loadScene(0);
+        } catch (e) {
+            console.error('Failed to start new game:', e);
+            this.showMessage('Error starting game: ' + e.message);
+            this.hideLoadScreen();
+            this.showMainMenu();
         }
-        this.currentSceneIndex = 0;
-        await this.loadScene(0);
     }
     
     async loadHADFile() {
@@ -174,15 +181,18 @@ class GameApp {
     }
     
     async loadScene(sceneIndex) {
-        if (!this.currentHAD || sceneIndex >= this.currentHAD.scenes.length) return;
+        if (!this.currentHAD || sceneIndex >= this.currentHAD.scenes.length) {
+            this.hideLoadScreen();
+            return;
+        }
         
         this.showLoadScreen(`Loading ${this.currentHAD.scenes[sceneIndex].title}...`);
         
         this.currentSceneIndex = sceneIndex;
         const scene = this.currentHAD.scenes[sceneIndex];
         
-        if (scene['seed-key'] && typeof scene['seed-key'] === 'string') {
-            try {
+        try {
+            if (scene['seed-key'] && typeof scene['seed-key'] === 'string') {
                 const seed = await decompressSeed(scene['seed-key']);
                 if (seed.type === 'cutscene') {
                     this.playCutscene(seed);
@@ -190,20 +200,19 @@ class GameApp {
                 }
                 await this.engine.loadSeed(seed);
                 this.startPlaying();
-            } catch (e) {
-                console.error('Failed to load seed:', e);
-                this.showMessage('Error loading level: ' + e.message);
-                this.showMainMenu();
+            } else if (this.currentHAD._demoSeed && sceneIndex === 0) {
+                await this.engine.loadSeed(this.currentHAD._demoSeed);
+                this.startPlaying();
+            } else {
+                throw new Error('No seed data for this scene');
             }
-        } else if (this.currentHAD._demoSeed && sceneIndex === 0) {
-            await this.engine.loadSeed(this.currentHAD._demoSeed);
-            this.startPlaying();
-        } else {
-            this.showMessage('No seed data for this scene');
+        } catch (e) {
+            console.error('Failed to load seed:', e);
+            this.showMessage('Error loading level: ' + e.message);
             this.showMainMenu();
+        } finally {
+            this.hideLoadScreen();
         }
-        
-        this.hideLoadScreen();
     }
     
     startPlaying() {
